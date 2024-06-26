@@ -1,7 +1,391 @@
-<!DOCTYPE html>
-<html>
-    <title>王允安的網站</title>
-    <body>
-        <h1>ILY</h1>
-    </body>
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src=" https://cdn.jsdelivr.net/npm/hystmodal@1.0.1/dist/hystmodal.min.js "></script>
+    <script src="https://www.unpkg.com/browse/spin@0.0.1/spin.js"></script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6036301386902714"
+        crossorigin="anonymous"></script>
+    <link href=" https://cdn.jsdelivr.net/npm/hystmodal@1.0.1/dist/hystmodal.min.css " rel="stylesheet" />
+    <meta name="description" content="Find Words in the game 'Spellcast'. Auto detects letters" />
+    <meta name="keywords" content="Spellcast, game, word finder, cheat, helper, cheating, discord" />
+    <title>Spellcast Word Finder</title>
+
+    <style>
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        #imageForm {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+            width: 300px;
+        }
+
+        #imageForm label {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        #imageForm input[type="file"] {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 100%;
+        }
+
+        #imageForm button,
+        #results button {
+            background-color: #007bff;
+            /* Blue */
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+            width: 100%;
+        }
+
+        #imageForm button:hover,
+        #results button:hover {
+            background-color: #0056b3;
+        }
+
+        #results {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 300px;
+            margin-top: 20px;
+        }
+
+        #results button {
+            margin: 5px;
+            width: calc(70% - 10px);
+        }
+
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #fff;
+            border-bottom-color: #ff3d00;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+
+        @keyframes rotation {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .discord-link {
+            color: #7289da;
+            /* Discord's brand color */
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .discord-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="descriptionDiv">
+        <h1>Spellcast Word Finder</h1>
+        <p style="
+          font-size: 1.2em;
+          line-height: 1.6;
+          color: #333;
+          max-width: 800px;
+          text-align: justify;
+        ">
+            This tool helps you find words in the game Spellcast. It uses a neural
+            network to detect the letters in the image and shows possible words with
+            their score attached. This can be a great help when you're stuck or when
+            you want to maximize your score. Just upload an image of your game
+            board, and let the tool do the rest!
+        </p>
+    </div>
+
+    <h2>Image Upload</h2>
+
+    <form id="imageForm">
+        <label for="imageInput">Select an image:</label>
+        <input type="file" id="imageInput" accept="image/*" />
+        <button type="button" onclick="uploadImage()">Upload Image</button>
+    </form>
+    <span id="spinner" style="display: none" class="loader"></span>
+
+    <div id="results"></div>
+
+    <div id="path-display"></div>
+
+    <div class="hystmodal" id="invalid_image" aria-hidden="true">
+        <div class="hystmodal__wrap">
+            <div class="hystmodal__window" role="dialog" aria-modal="true" style="padding: 20px">
+                <p></p>
+                <h1>Invalid Image</h1>
+                <span>Image must be a valid .png file. </span>
+                <button data-hystclose class="hystmodal__close">Okay</button>
+            </div>
+        </div>
+    </div>
+    <p>
+        If you have questions, ideas, or problems, join our
+        <a class="discord-link" href="https://discord.gg/8DrhhUT2fY">Discord server</a>.
+    </p>
+
+    <div class="hystmodal" id="unable_to_detect" aria-hidden="true">
+        <div class="hystmodal__wrap">
+            <div class="hystmodal__window" role="dialog" aria-modal="true" style="padding: 20px">
+                <p></p>
+                <h1>No Characters detected</h1>
+                <p>
+                    Sadly, no characters were detected in the image. Please try cropping
+                    the images like this
+                </p>
+                <img src="/example-image.png" alt="cropped image" width="50%" />
+                <p>The Detection will continiously improve over time.</p>
+                <button data-hystclose class="hystmodal__close">Okay</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const resultsElement = document.getElementById("results");
+        const inputElement = document.getElementById("imageInput");
+        const pathElement = document.getElementById("path-display");
+        const descriptionDiv = document.getElementById("descriptionDiv");
+        const spinner = document.getElementById("spinner");
+
+        const hyst = new HystModal({
+            linkAttributeName: "data-hystmodal",
+        });
+        async function uploadImage() {
+            descriptionDiv.style.display = "none";
+            const file = inputElement.files[0];
+
+            if (file) {
+                try {
+                    showSpinner();
+                    const base64String = await getBase64String(file);
+                    const res = await sendImage(base64String);
+                    hideSpinner();
+                    await continueAfterUpload(res.id, res.matrix);
+                } catch (error) {
+                    console.log(error);
+                }
+            } else {
+                alert("Please select an image before uploading.");
+            }
+        }
+
+        function showSpinner() {
+            document.getElementById("spinner").style.display = "block";
+        }
+
+        function hideSpinner() {
+            document.getElementById("spinner").style.display = "none";
+        }
+
+        function getBase64String(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const base64String = e.target.result.split(",")[1];
+                    resolve(base64String);
+                };
+                reader.onerror = function (error) {
+                    reject(error);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function sendImage(base64String) {
+            const apiUrl = "/detect"; // Change this to your actual API endpoint
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json;charset=UTF-8",
+                    },
+                    body: JSON.stringify({ image: base64String }),
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    hyst.open(`#${data.error}`);
+                    throw new Error(data.error);
+                }
+                return data;
+            } catch (error) {
+                throw new Error("Network error: " + error.message);
+            }
+        }
+
+        async function continueAfterUpload(id, matrix) {
+            const paths = await fetch("/paths/" + id).then((res) => res.json());
+            resultsElement.innerHTML = "";
+            const buttons = [];
+            paths.forEach((path, index) => {
+                const button = document.createElement("button");
+                button.innerText = `${path.word} (${path.score} pts)`;
+                button.onclick = (self) => {
+                    showPath(matrix, path.path);
+                    buttons.forEach((b) => (b.style.backgroundColor = ""));
+                    self.target.style.backgroundColor = "blue";
+                };
+                buttons.push(button);
+                resultsElement.appendChild(button);
+            });
+            buttons[0].click();
+            showDonationToast();
+        }
+
+        function showPath(matrix, path) {
+            const canvas = document.createElement("canvas");
+            canvas.width = matrix[0].length * 50;
+            canvas.height = matrix.length * 50; // Set the height of the canvas
+            const ctx = canvas.getContext("2d");
+            ctx.font = "20px Arial";
+
+            // Draw the matrix
+            matrix.forEach((row, rowIndex) => {
+                row.forEach((cell, colIndex) => {
+                    const x = colIndex * 50;
+                    const y = rowIndex * 50;
+                    if (cell === "fr") {
+                        // draw blue square, then reset
+                        ctx.fillStyle = `rgba(0, 0, 255, 0.5)`;
+                        ctx.fillRect(x, y, 50, 50);
+                        ctx.fillStyle = `rgba(0, 0, 0, 1)`;
+
+                        return;
+                    }
+                    ctx.strokeRect(x, y, 50, 50);
+                    ctx.fillText(cell, x + 50 / 2.5, y + 30);
+                });
+            });
+
+            // Draw the path
+            path.forEach((pos, index) => {
+                const x = pos.col * 50;
+                const y = pos.row * 50;
+                ctx.fillStyle = `rgba(0, 255, 0, 0.5)`; // Gradually change the color along the path
+                ctx.fillRect(x, y, 50, 50);
+
+                // Draw arrow if it's not the last position
+                if (index < path.length - 1) {
+                    const nextPos = path[index + 1];
+                    const nextX = nextPos.col * 50;
+                    const nextY = nextPos.row * 50;
+
+                    // Use an IIFE to capture the current state of the variables
+                    (function (x, y, nextX, nextY, index) {
+                        setTimeout(() => {
+                            const dx = nextX - x;
+                            const dy = nextY - y;
+                            const angle = Math.atan2(dy, dx);
+
+                            // Adjust the starting and ending points of the arrow lines based on the direction of the arrow
+                            const startX = x + 25 + 15 * Math.cos(angle);
+                            const startY = y + 25 + 15 * Math.sin(angle);
+                            const endX = nextX + 25 - 15 * Math.cos(angle);
+                            const endY = nextY + 25 - 15 * Math.sin(angle);
+
+                            ctx.beginPath();
+                            ctx.moveTo(startX, startY);
+                            ctx.lineTo(endX, endY);
+                            ctx.strokeStyle = `rgba(255,0, 0, 100)`;
+                            ctx.lineWidth = 2;
+                            ctx.stroke();
+
+                            const headlen = 10; // length of head in pixels
+                            ctx.lineTo(
+                                endX - headlen * Math.cos(angle - Math.PI / 6),
+                                endY - headlen * Math.sin(angle - Math.PI / 6),
+                            );
+                            ctx.moveTo(endX, endY);
+                            ctx.lineTo(
+                                endX - headlen * Math.cos(angle + Math.PI / 6),
+                                endY - headlen * Math.sin(angle + Math.PI / 6),
+                            );
+                            ctx.stroke();
+                        }, index * 500); // Delay of 500ms times the index
+                    })(x, y, nextX, nextY, index);
+                }
+            });
+
+            pathElement.innerHTML = "";
+            pathElement.appendChild(canvas);
+        }
+
+        function showDonationToast() {
+            const toast = document.createElement("div");
+            toast.style.position = "fixed";
+            toast.style.top = "10px";
+            toast.style.right = "10px";
+            toast.style.backgroundColor = "#333";
+            toast.style.color = "white";
+            toast.style.padding = "10px";
+            toast.style.borderRadius = "5px";
+            toast.style.zIndex = "1000";
+            toast.innerHTML = `If you find this tool helpful, click me to buy me a beer! 🍺`;
+            toast.onclick = () => {
+                window.open(deobfuscateLink("4ffq4enh6Oer6evnqu3iqevvq6u+9/Tw8Ow="));
+            };
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.remove();
+            }, 5000);
+        }
+
+        function deobfuscateLink(encodedUrl) {
+            let decoded = atob(encodedUrl);
+            const key = 132;
+            decoded = decoded.replace(/./g, function (char) {
+                return String.fromCharCode(char.charCodeAt(0) ^ key);
+            });
+
+            return decoded.split("").reverse().join("");
+        }
+    </script>
+</body>
+
 </html>
